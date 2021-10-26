@@ -1,0 +1,2 @@
+# scripts
+Simple automation scripts
