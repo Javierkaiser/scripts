@@ -9,22 +9,39 @@ $db = db_connect();
 
 function modify_transaction_dates($db){
     $transactions = get_transactions($db);
-    $star_time = '09:00:00';
+    $start_time = '09:00:00';
+    $end_time = '18:00:00';
+    $start_date = '2021-01-01';
+    $end_date = '2021-11-28';
     $current_date = '';
     $current_time = '';
+    $limit = 44;
+    $counter = 0;
 
     foreach ($transactions as $index => $transaction) {
         if ($current_date == '') {
-            $current_date = $transaction['transaction_date'];
-            $current_time = $star_time;
-        } elseif ($transaction['transaction_date'] > $current_date) {
-            $current_date = $transaction['transaction_date'];
-            $current_time = $star_time;
+            $current_date = $start_date;
+            $current_time = $start_time;
+        } elseif ($current_time > $end_time && $current_date < $end_date) {
+            $current_date = date('Y-m-d', strtotime($current_date . ' +1 day'));
+            $current_time = $start_time;
         }
+        if ($counter == $limit) {
+            $current_date = date('Y-m-d', strtotime($current_date . ' +1 day'));
+            $current_time = $start_time;
+            $counter = 0;
+        }
+        if (date('d', strtotime($current_date)) > '5'&& $current_date < $end_date) {
+            $current_date = date('Y-m', strtotime($current_date . ' +1 month')) . '-01';
+        }
+        $counter++;
+
         $created_time = date('Y-m-d H:i:s', strtotime($current_date . ' ' . $current_time));
-        $current_time = date('H:i:s', strtotime($current_time . ' +2 minutes'));
+        $updated_date = date('Y-m-d', strtotime($current_date . ' ' . $current_time));
+        $current_time = date('H:i:s', strtotime($current_time . ' +5 minutes'));
 
         $transactions[$index]['created'] = $created_time;
+        $transactions[$index]['transaction_date'] = $updated_date;
     }
     $results = update_transaction_dates($db, $transactions);
     print_r($results);
@@ -43,7 +60,7 @@ function get_transactions($db){
 function update_transaction_dates($db, $transactions){
     $results = [];
     foreach($transactions as $transaction){
-        $sql = "UPDATE tbl_transaction SET created = '".$transaction['created']."' WHERE transaction_id = ".$transaction['transaction_id'];
+        $sql = "UPDATE tbl_transaction SET created = '{$transaction['created']}', transaction_date = '{$transaction['transaction_date']}'  WHERE transaction_id = ".$transaction['transaction_id'];
         $results[] = mysqli_query($db, $sql);
     }
     return $results;
